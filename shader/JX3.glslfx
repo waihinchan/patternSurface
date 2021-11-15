@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<glslfx version="1.0.0" author="Vino" label="Metallic Roughness JX3">
+    <!-- TECHNIQUES -->
+    <technique name="Tessellation" label="Tesselation + Displacement(WIP)">
+        <!-- PROPERTIES -->
+        <property name="blend_enabled"     value="true"/>
+        <property name="blend_func"        value="src_alpha,one_minus_src_alpha"/>
+        <property name="cull_face_enabled" value="true"/>
+        <property name="cull_face_mode"    value="back"/>
+
+        <!-- SHADERS -->
+        <shader type="vertex"       filename="../common/tessellation/vs.glsl" primitiveType="patch3"/>
+        <shader type="tess_control" filename="../common/tessellation/tcs.glsl"/>
+        <shader type="tess_eval"    filename="../common/tessellation/tes.glsl"/>
+        <shader type="fragment"     filename="fs.glsl"/>
+
+        <!-- UNIFORMS -->
+        <uniform name="parallax_mode"       guiName="Parallax Mode" min="1" max="1" />
+        <uniform name="tessellationFactor"		guiGroup="Height"       guiName="Tessellation Factor"	default="0"   min="1" max="64" guiMin="1" guiMax="16" guiStep="1"   guiWidget="slider" ishidden="true"/>
+        <uniform name="scalarZeroValue"			guiGroup="Height"       guiName="Scalar Zero Value"		default="0" min="0" max="1"  guiMin="0" guiMax="1"  guiStep="0.1" guiWidget="slider" ishidden="true"/>		
+
+        <!-- PHONG TESSELLATION UNIFORMS -->
+        <uniform name="usePhongTessellation"    guiGroup="Height"  guiName="Phong Tessellation"         default="false"      guiWidget="checkbox" ishidden="true"/>
+        <uniform name="phongTessellationFactor" guiGroup="Height"  guiName="Phong Tessellation Factor"  default="0" min="0.0" max="1.0" guiMin="0.0" guiMax="1.0" guiStep="0.05" guiWidget="slider" ishidden="true"/>
+    </technique>
+	
+    <technique name="Parallax Occlusion" label="Parallax Occlusion(not supported yet)">
+        <!-- PROPERTIES -->
+        <property name="blend_enabled"     value="true"/>
+        <property name="blend_func"        value="src_alpha,one_minus_src_alpha"/>
+        <property name="cull_face_enabled" value="true"/>
+        <property name="cull_face_mode"    value="back"/>
+
+        <!-- SHADERS -->
+        <shader type="vertex"   filename="../common/parallax/vs.glsl"/>
+        <shader type="fragment" filename="fs.glsl"/>
+
+        <!-- UNIFORMS -->
+        <uniform name="parallax_mode" guiName="Parallax Mode"         min="0" max="0" />
+    </technique>	
+
+
+    <!-- INPUT VERTEX FORMAT -->
+    <vertexformat name="iVS_Position" semantic="position"/>
+    <vertexformat name="iVS_Normal"   semantic="normal"/>
+    <vertexformat name="iVS_UV"       semantic="texcoord0"/>
+    <vertexformat name="iVS_Tangent"  semantic="tangent0"/>
+    <vertexformat name="iVS_Binormal" semantic="binormal0"/>
+
+    <!-- TRANSFORM FEEDBACK VERTEX FORMAT -->
+    <feedbackformat name="iFS_Normal"   semantic="feedback_normal"/>
+    <feedbackformat name="iFS_UV"       semantic="feedback_texcoord"/>
+    <feedbackformat name="iFS_Tangent"  semantic="feedback_tangent"/>
+    <feedbackformat name="iFS_Binormal" semantic="feedback_binormal"/>
+    <feedbackformat name="iFS_PointWS"  semantic="feedback_position"/>
+
+    <!-- SAMPLERS -->
+    <sampler name="baseColorMap"       usage="baseColor"        guiGroup="Base Color"        guiWidget="color_rgb_float"/>
+    <!-- CUSTOM -->
+    <sampler name="baseColorMapGround"       usage="baseColorMapGround"        guiGroup="Base Color Ground"        guiWidget="color_rgb_float"/>
+    <sampler name="baseColorMapDetail"       usage="baseColorMapDetail"        guiGroup="Base Color Detail"        guiWidget="color_rgb_float"/>
+    <!-- CUSTOM -->
+    <sampler name="normalMap"          usage="normal"           guiGroup="Normal"            guiWidget="color_rgb_float"/>
+    <sampler name="roughnessMap"       usage="roughness"        guiGroup="Roughness"         guiWidget="color_lum_float"/>
+    <sampler name="metallicMap"        usage="metallic"         guiGroup="Metallic"          guiWidget="color_lum_float"/>
+    <sampler name="heightMap"          usage="height"           guiGroup="Height"            guiWidget="color_lum_float"/>
+    <sampler name="aoMap"              usage="ambientOcclusion" guiGroup="Ambient Occlusion" guiWidget="color_lum_float"/>
+    <sampler name="anisotropyLevelMap" usage="anisotropyLevel"  guiGroup="Anisotropy"        guiWidget="color_lum_float"/>
+    <sampler name="anisotropyAngleMap" usage="anisotropyAngle"  guiGroup="Anisotropy"        guiWidget="angle_float"/>
+    <sampler name="emissiveMap"        usage="emissive"         guiGroup="Emissive"          guiWidget="color_rgb_float"/>
+    <sampler name="specularLevel"      usage="specularLevel"    guiGroup="Specular"          guiWidget="color_lum_float"/>
+    <sampler name="opacityMap"         usage="opacity"          guiGroup="Opacity"           guiWidget="color_lum_float"/>
+    <sampler name="environmentMap"     usage="environment"      guiGroup="Environment"       guiWidget="color_rgb_float" ishidden="true"/>
+    <sampler name="bluenoiseMask"      usage="bluenoisemask"    ishidden="true"/>
+    <sampler name="patternNoiseMap"      usage="Brick"   guiGroup="Global" guiWidget="color_rgb_float"/>
+    <!-- MATRICES -->
+    <uniform name="worldMatrix"                 semantic="world"/>
+    <uniform name="worldViewProjMatrix"         semantic="worldviewprojection"/>
+    <uniform name="worldViewMatrix"             semantic="worldview"/>
+    <uniform name="worldInverseTransposeMatrix" semantic="worldinversetranspose"/>
+    <uniform name="viewInverseMatrix"           semantic="viewinverse"/>
+    <uniform name="modelViewMatrix"             semantic="modelview"/>
+    <uniform name="projectionMatrix"            semantic="projection"/>
+
+    <!-- SCENE PARAMETERS -->
+    <uniform name="Lamp0Enabled"   semantic="light0enabled"/>
+    <uniform name="Lamp0Pos"       semantic="light0position"/>
+    <uniform name="Lamp0Color"     semantic="light0color"/>
+    <uniform name="Lamp0Intensity" semantic="light0intensity"/>
+    <uniform name="Lamp1Enabled"   semantic="light1enabled"/>
+    <uniform name="Lamp1Pos"       semantic="light1position"/>
+    <uniform name="Lamp1Color"     semantic="light1color"/>
+    <uniform name="Lamp1Intensity" semantic="light1intensity"/>
+
+    <!-- MISC PARAMETERS -->
+    <uniform name="nbSamples"           semantic="samplespostablesize"/>
+    <uniform name="maxLod"              semantic="panoramamipmapheight"/>
+    <uniform name="AmbiIntensity"       semantic="panoramaintensity"/>
+    <uniform name="envRotation"         semantic="panoramarotation"/>
+    <uniform name="shCoefs"             semantic="irradianceshcoefs"/>
+    <uniform name="perFragBinormal"     semantic="computebinormalinfragmentshader"/>
+    <uniform name="uvwScale"            semantic="uvwscale"/>
+    <uniform name="displayUVTileOnly"   semantic="renderuvtile"/>
+    <uniform name="uvTileCoords"        semantic="uvtilecoords"/>
+
+    <!-- UNIFORMS -->
+    <uniform name="EmissiveIntensity" guiGroup="Emissive"   guiName="Emissive Intensity"      default="1" min="0"                         guiWidget="slider"   guiMin="0"  guiMax="20"/>
+    <uniform name="sRGBEmission"      guiGroup="Emissive"   guiName="sRGB Emission Texture"   default="{{sRGBWorkingColorSpace==true}}"   guiWidget="checkbox" semantic="isworkingcolorspacesrgb"/>
+    <uniform name="sRGBBaseColor"     guiGroup="Base Color" guiName="sRGB Base Color Texture" default="{{sRGBWorkingColorSpace==true}}"   guiWidget="checkbox" semantic="isworkingcolorspacesrgb"/>
+    <uniform name="heightMapScale"    guiGroup="Height"     guiName="Scale"                   default="0"                                 guiWidget="slider"   guiMin="0"  guiMax="10" usage="heightScale" ishidden="true"/>
+    <uniform name="flipY"             guiGroup="Normal"     guiName="DirectX Normal"          default="true"                              guiWidget="checkbox" semantic="isdirectxnormal"/>
+    <uniform name="tiling"            guiGroup="Global"     guiName="Tiling"                  default="1" min="0.01"                      guiWidget="slider"   guiMax="10"/>
+    <uniform name="uvwScaleEnabled"   guiGroup="Global"     guiName="UV Scale Enabled"        default="false"                             guiWidget="checkbox" semantic="uvwscaleenabled"/>
+    <!-- custom -->
+    <uniform name="Patterntiling"     guiGroup="Brick"     guiName="Patterntiling"           default="1" min="0.01"                      guiWidget="slider"   guiMax="10"/>
+    <uniform name="Width"             guiGroup="Brick"     guiName="Width"                   default="1" min="0.5"                       guiWidget="slider"   guiMax="1" ishidden="false"/> 
+    <uniform name="Height"            guiGroup="Brick"     guiName="Height"                  default="1" min="0.5"                       guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="FadeDistance"      guiGroup="Brick"     guiName="FadeDistance"            default="0.01" min="0"                         guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="MaxHeight"         guiGroup="Brick"     guiName="brick highest"           default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="MinLow"            guiGroup="Brick"     guiName="brick most low "           default="0.1" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+
+    <uniform name="GroundStrength"    guiGroup="Global"     guiName="GroundStrength"          default="1" min="0"                         guiWidget="slider"   guiMax="1" />
+    <uniform name="NormalStrength"    guiGroup="Global"     guiName="NormalStrength"          default="1" min="0"                         guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="AnisotropyStrength"     guiGroup="Global"     guiName="AnisotropyStrength"           default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="randomSeed"     guiGroup="Global"     guiName="random Seed For repeat"           default="0.5" min="1"                guiWidget="slider"   guiMax="10000" ishidden="false"/>
+    
+    <uniform name="SurfaceNormalStrength"  guiGroup="Global"     guiName="SurfaceNormalStrength"        default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+    
+    <uniform name="shapeOfAtlas"  guiGroup="Height"     guiName="N * N?"        default="3" min="1"                guiWidget="slider"   guiMax="8" ishidden="false"/>
+    <uniform name="maxNumOfAtlas"  guiGroup="Height"     guiName="how many height map in this Altas"        default="9" min="1"                guiWidget="slider"   guiMax="64" ishidden="false"/>
+    
+    <uniform name="curveStrength"     guiGroup="Curve Strength"     guiName="curve ctrength"           default="1" min="1"                            guiWidget="slider"   guiMax="10" ishidden="false"/>
+    <uniform name="InOutEdge"         guiGroup="Curve Strength"     guiName="in or out edge"          default="false"                                guiWidget="checkbox" semantic="InOutEdge"/>
+
+    <uniform name="Edgedeformation"     guiGroup="Edge Break"     guiName="How Edge Deform"           default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="minScale"       guiGroup="Edge Break"     guiName="Min Random Edge"           default="1" min="0.001"                              guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="EdgeRandomSeed"       guiGroup="Edge Break"     guiName="How Finely The Edge Be Segment"           default="1" min="0.001"                              guiWidget="slider"   guiMax="10" ishidden="false"/>
+    <uniform name="EdgeSegment"       guiGroup="Edge Break"     guiName="How Finely The Brick Edge Be Segment"           default="1" min="0.001"                              guiWidget="slider"   guiMax="10" ishidden="false"/>
+    <uniform name="CornerDeformation"     guiGroup="Edge Break"     guiName="Corner Break Strength"           default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="inBlack"      guiGroup="Edge Break"      guiName="Levles左上那个箭头 inBlack"            default="0"     min="0"               guiWidget="slider"   guiMax="1" />
+    <uniform name="inGamma"      guiGroup="Edge Break"      guiName="Levles中上那个箭头 inGamma"            default="0.5"   min="0"               guiWidget="slider"   guiMax="1" />
+    <uniform name="inWhite"      guiGroup="Edge Break"      guiName="Levles右上那个箭头 inWhite"            default="1"     min="0"               guiWidget="slider"   guiMax="1" />
+    <uniform name="outBlack"     guiGroup="Edge Break"      guiName="Levles左下那个箭头 outBlack"            default="0"     min="0"               guiWidget="slider"   guiMax="1" />
+    <uniform name="outWhite"     guiGroup="Edge Break"      guiName="Levles右下那个箭头 outWhite"            default="1"     min="0"               guiWidget="slider"   guiMax="1" />
+
+    <!-- DEBUG -->
+    <uniform name="checkHeight"      guiGroup="Debug"     guiName="Check Height"           default="false"                                guiWidget="checkbox" semantic="checkPattern"/>
+    <uniform name="checkNormal"      guiGroup="Debug"     guiName="Check Normal"           default="false"                                guiWidget="checkbox" semantic="checkNormal"/>
+    <uniform name="checkCurveMask"      guiGroup="Debug"     guiName="check Curve Mask"    default="false"                                guiWidget="checkbox" semantic="checkCurveMask"/>
+    <uniform name="checkRandomBrickEdge"      guiGroup="Debug"     guiName="Random Brick Edge Mask"    default="false"                                guiWidget="checkbox" semantic="checkRandomBrickEdge"/>
+
+    <!-- DEBUG -->
+</glslfx>
