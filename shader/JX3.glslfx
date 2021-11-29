@@ -57,10 +57,14 @@
     <!-- SAMPLERS -->
     <sampler name="baseColorMap"       usage="baseColor"        guiGroup="Base Color"        guiWidget="color_rgb_float"/>
     <!-- CUSTOM -->
-    <sampler name="baseColorMapGround"       usage="baseColorMapGround"        guiGroup="Base Color Ground"        guiWidget="color_rgb_float"/>
-    <sampler name="baseColorMapDetail"       usage="baseColorMapDetail"        guiGroup="Base Color Detail"        guiWidget="color_rgb_float"/>
+    <sampler name="baseColorMapGround"       usage="baseColorMapGround"        guiGroup="Base Color"        guiWidget="color_rgb_float"/>
+    <sampler name="baseColorMapDetail"       usage="baseColorMapDetail"        guiGroup="Base Color"        guiWidget="color_rgb_float"/>
+    <sampler name="baseColorMapCurve"       usage="baseColorMapCurve"        guiGroup="Base Color"        guiWidget="color_rgb_float"/>
     <!-- CUSTOM -->
-    <sampler name="normalMap"          usage="normal"           guiGroup="Normal"            guiWidget="color_rgb_float"/>
+    <sampler name="normalMap"          usage="normalGround"           guiGroup="Normal"            guiWidget="color_rgb_float"/>
+    <sampler name="normalDetailMap"          usage="normalDetail"           guiGroup="Normal"            guiWidget="color_rgb_float"/>
+    <sampler name="normalCurveMap"          usage="normalCurve"           guiGroup="Normal"            guiWidget="color_rgb_float"/>
+
     <sampler name="roughnessMap"       usage="roughness"        guiGroup="Roughness"         guiWidget="color_lum_float"/>
     <sampler name="metallicMap"        usage="metallic"         guiGroup="Metallic"          guiWidget="color_lum_float"/>
     <sampler name="heightMap"          usage="height"           guiGroup="Height"            guiWidget="color_lum_float"/>
@@ -116,32 +120,33 @@
     <uniform name="Width"             guiGroup="Brick"     guiName="Width"                   default="1" min="0.5"                       guiWidget="slider"   guiMax="1" ishidden="false"/> 
     <uniform name="Height"            guiGroup="Brick"     guiName="Height"                  default="1" min="0.5"                       guiWidget="slider"   guiMax="1" ishidden="false"/>
     <uniform name="FadeDistance"      guiGroup="Brick"     guiName="FadeDistance"            default="0.01" min="0"                         guiWidget="slider"   guiMax="1" ishidden="false"/>
-    <uniform name="MaxHeight"         guiGroup="Brick"     guiName="brick highest"           default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="MaxHeight"         guiGroup="Brick"     guiName="brick highest"           default="1" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
     <uniform name="MinLow"            guiGroup="Brick"     guiName="brick most low "           default="0.1" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="bricktiling"       guiGroup="Brick"     guiName="Brick Tiling"            default="1" min="0.01"                      guiWidget="slider"   guiMax="10"/>
 
-    <uniform name="GroundStrength"    guiGroup="Global"     guiName="GroundStrength"          default="1" min="0"                         guiWidget="slider"   guiMax="1" />
+    <uniform name="GroundStrength"    guiGroup="Brick"     guiName="GroundStrength"          default="1" min="0"                         guiWidget="slider"   guiMax="1" />
     <uniform name="NormalStrength"    guiGroup="Global"     guiName="NormalStrength"          default="1" min="0"                         guiWidget="slider"   guiMax="1" ishidden="false"/>
-    <uniform name="AnisotropyStrength"     guiGroup="Global"     guiName="AnisotropyStrength"           default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
-    <uniform name="randomSeed"     guiGroup="Global"     guiName="random Seed For repeat"           default="0.5" min="1"                guiWidget="slider"   guiMax="10000" ishidden="false"/>
+    <uniform name="AnisotropyStrength"     guiGroup="Brick"     guiName="AnisotropyStrength"           default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="randomSeed"     guiGroup="Brick"     guiName="random Seed For repeat"           default="0.5" min="1"                guiWidget="slider"   guiMax="10000" ishidden="false"/>
     
-    <uniform name="SurfaceNormalStrength"  guiGroup="Global"     guiName="SurfaceNormalStrength"        default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
+    <uniform name="SurfaceNormalStrength"  guiGroup="Brick"     guiName="SurfaceNormalStrength"        default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
     
-    <uniform name="shapeOfAtlas"  guiGroup="Height"     guiName="N * N?"        default="3" min="1"                guiWidget="slider"   guiMax="8" ishidden="false"/>
-    <uniform name="maxNumOfAtlas"  guiGroup="Height"     guiName="how many height map in this Altas"        default="9" min="1"                guiWidget="slider"   guiMax="64" ishidden="false"/>
+    <uniform name="shapeOfAtlas"  guiGroup="Brick"     guiName="N * N?"        default="4" min="1"                guiWidget="slider"   guiMax="8" ishidden="false"/>
+    <uniform name="maxNumOfAtlas"  guiGroup="Brick"     guiName="how many height map in this Altas"        default="16" min="1"                guiWidget="slider"   guiMax="64" ishidden="false"/>
     
-    <uniform name="curveStrength"     guiGroup="Curve Strength"     guiName="curve ctrength"           default="1" min="1"                            guiWidget="slider"   guiMax="10" ishidden="false"/>
-    <uniform name="InOutEdge"         guiGroup="Curve Strength"     guiName="in or out edge"          default="false"                                guiWidget="checkbox" semantic="InOutEdge"/>
+    <uniform name="curveMaskStrength"     guiGroup="Curve"     guiName="Curve Mask Strength"           default="1" min="1"                            guiWidget="slider"   guiMax="10" ishidden="false"/>
+    <uniform name="curveMaskScale"     guiGroup="Curve"     guiName="Curve Mask Scalength"           default="0.1" min="0"                            guiWidget="slider"   guiMax="1" ishidden="false"/>
+
 
     <uniform name="Edgedeformation"     guiGroup="Edge Break"     guiName="How Edge Deform"           default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
     <uniform name="minScale"       guiGroup="Edge Break"     guiName="Min Random Edge"           default="1" min="0.001"                              guiWidget="slider"   guiMax="1" ishidden="false"/>
-    <uniform name="EdgeRandomSeed"       guiGroup="Edge Break"     guiName="How Finely The Edge Be Segment"           default="1" min="0.001"                              guiWidget="slider"   guiMax="10" ishidden="false"/>
+    <uniform name="EdgeRandomSeed"       guiGroup="Edge Break"     guiName="How Finely The Edge Random"           default="1" min="0.001"                              guiWidget="slider"   guiMax="10" ishidden="false"/>
     <uniform name="EdgeSegment"       guiGroup="Edge Break"     guiName="How Finely The Brick Edge Be Segment"           default="1" min="0.001"                              guiWidget="slider"   guiMax="10" ishidden="false"/>
     <uniform name="CornerDeformation"     guiGroup="Edge Break"     guiName="Corner Break Strength"           default="0.5" min="0"                guiWidget="slider"   guiMax="1" ishidden="false"/>
-    <uniform name="inBlack"      guiGroup="Edge Break"      guiName="Levles左上那个箭头 inBlack"            default="0"     min="0"               guiWidget="slider"   guiMax="1" />
-    <uniform name="inGamma"      guiGroup="Edge Break"      guiName="Levles中上那个箭头 inGamma"            default="0.5"   min="0"               guiWidget="slider"   guiMax="1" />
-    <uniform name="inWhite"      guiGroup="Edge Break"      guiName="Levles右上那个箭头 inWhite"            default="1"     min="0"               guiWidget="slider"   guiMax="1" />
-    <uniform name="outBlack"     guiGroup="Edge Break"      guiName="Levles左下那个箭头 outBlack"            default="0"     min="0"               guiWidget="slider"   guiMax="1" />
-    <uniform name="outWhite"     guiGroup="Edge Break"      guiName="Levles右下那个箭头 outWhite"            default="1"     min="0"               guiWidget="slider"   guiMax="1" />
+    <uniform name="contrast"      guiGroup="Height"      guiName="contrast"            default="0"     min="0"               guiWidget="slider"   guiMax="1" />
+    <uniform name="opcity"      guiGroup="Height"      guiName="opcity"            default="0.5"   min="0"               guiWidget="slider"   guiMax="1" />
+    <uniform name="offset1"      guiGroup="Height"      guiName="offset"            default="1"     min="0"               guiWidget="slider"   guiMax="1" />
+    <uniform name="mode"      guiGroup="Height"      guiName="mode"            default="1"     min="0"               guiWidget="slider"   guiMax="1" />
 
     <!-- DEBUG -->
     <uniform name="checkHeight"      guiGroup="Debug"     guiName="Check Height"           default="false"                                guiWidget="checkbox" semantic="checkPattern"/>

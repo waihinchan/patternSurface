@@ -69,9 +69,12 @@ uniform bool sRGBEmission = true;
 
 uniform sampler2D heightMap;
 uniform sampler2D normalMap;
+uniform sampler2D normalDetailMap;
+uniform sampler2D normalCurveMap;
 uniform sampler2D baseColorMap;
 uniform sampler2D baseColorMapGround;
 uniform sampler2D baseColorMapDetail;
+uniform sampler2D baseColorMapCurve;
 uniform sampler2D metallicMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
@@ -105,22 +108,15 @@ uniform vec3 shCoefs[10];
 #include "utils.glsl"
 //in case of we missed some include file.
 
-//Custom
-//adjust the curve
-uniform float randomSeed = 1001;
-uniform float inBlack = 0.0;
-uniform float inWhite = 1.0;
-uniform float inGamma = 0.5;
-uniform float outBlack = 0.0;
-uniform float outWhite = 0.0;
-//adjust the curve
 
 //CUSTOM
+uniform float randomSeed = 1001;
+uniform float curveMaskStrength = 1;
+uniform float curveMaskScale = 0.1;
 uniform float shapeOfAtlas = 3;
 uniform float maxNumOfAtlas = 9;
 uniform float brokeCornerDetails = 1.0;
 uniform float minScale = 0.5;
-uniform float curveStrength = 1.0;
 uniform float AnisotropyStrength = 0.5;
 uniform float EdgeRandomSeed = 1.0;
 uniform float EdgeSegment = 1.0;
@@ -136,24 +132,14 @@ uniform float NormalStrength = 1;
 uniform float FadeDistance = 0.02;
 uniform bool checkHeight = false;
 uniform bool checkNormal = false;
-uniform bool InOutEdge = false;
 uniform bool checkRandomBrickEdge = false;
 uniform bool checkCurveMask = false;
-uniform float MinLow = 0.1;
-uniform float MaxHeight = 0.5;
+
 //CUSTOM
 #define PI 3.14159265359
 #define HALF_PI 1.57079632679
 #define TWO_PI 6.28318530718
-struct BrickData{
-	float hardEdge;
-	float softEdge;
-	float fadeArea;
-	float rawfadeArea;
-	float brickEdge;
-	float transitionEdge; //this is for elimiate the noise. or we only use noise algorithm instead texture
-	
-};
+
 vec3 TransformWorldToTangent(vec3 dirWS, mat3 worldToTangent)
 {
     // return dirWS * worldToTangent;
@@ -206,88 +192,15 @@ vec3 BlendNormals (vec3 n1, vec3 n2) {
 	return normalize(vec3(n1.xy + n2.xy, n1.z * n2.z));
 }
 //CUSTOM
-//https://docs.unity3d.com/Packages/com.unity.shadergraph@6.9/manual/Rectangle-Node.html
-float RectangleGenerator(vec2 uv,float width,float height){
-	vec2 d = abs(uv * 2 - 1) - vec2(width, height);
-    d = 1 - d / fwidth(d);
-    return clamp(min(d.x, d.y),0.0,1.0);
-}
 float map(float value, float min1, float max1, float min2, float max2) {
   return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
 }
-BrickData BrickGenerator(vec2 uv,float left,float bottom,float fade,float minHeight){
-	BrickData brick;
-	float xinLeft = uv.x - (1-left);
-	float xinRight = left - uv.x;
-	float yinTop = bottom-uv.y;
-	float yinBottom = uv.y - (1 - bottom);
-	float hardEdge = step(0.0,xinLeft) * step(0.0,xinRight) * step(0.0,yinTop) * step(0.0,yinBottom);
-	brick.hardEdge = hardEdge;
-	brick.brickEdge = 1 - hardEdge;
-
-	float softEdge = step(fade,xinLeft) * step(fade,xinRight) * step(fade,yinTop) * step(fade,yinBottom);
+vec2 RoundRectangle (vec2 _uv,float width,float height,float r){
+    float Radius = max(min(min(abs(r * 2), abs(width)), abs(height)), 1e-5 + 0.0);
+    vec2 uv = abs(_uv * 2 - 1) - vec2(width, height) + Radius;
+    float d = length(max(vec2(0.0), uv)) / Radius;
 	
-	brick.softEdge = softEdge;
-
-	float distanceToX = min(left - uv.x, uv.x - (1-left));
-	float distanceToY = min(bottom - uv.y, uv.y - (1-bottom));
-
-	// //WIP
-	// //  we substract and make a abs, only if the x equal y the value return 1, then we chose the slope
-	// float xequaly = step(0.99,min(distanceToX,distanceToY) / max(distanceToX,distanceToY));
-	// float xydistanceToEdge = map(min(distanceToX,distanceToY),0,fade,0,1) * (1 - xequaly); //map fade before multi the conditions
-	// float hypotenuseToCorner = min( min( min( 
-	// 							distance(uv,vec2(1-left,1-bottom)), distance(uv,vec2(1-left,bottom))), 
-	// 								distance(uv,vec2(left,1-bottom)) ), 
-	// 									distance(uv,vec2(left,bottom) ) );
-	// float maxDistance = distance(vec2(0.5,0.5),vec2(1-left,1-bottom));
-	// hypotenuseToCorner = map(hypotenuseToCorner,0,sqrt(fade * fade),0,1) * xequaly; //map to the hypotenuse to 1;
-	// //WIP
-	float distanceToOutEdge = min(distanceToX,distanceToY);
-	brick.rawfadeArea = distanceToOutEdge ;
-	
-	brick.fadeArea =  map(distanceToOutEdge,0,fade,minHeight,0.5);
-	return brick;
-	
-
-}
-vec2 RecentagleGenerator2(vec2 uv,float left,float right,float top,float bottom,bool updown,float fadeDistance){
-	vec2 usinguv = uv;
-	float toLeft = usinguv.x - (1 - left);
-	float toRight = right - usinguv.x;
-	float toTop = top-usinguv.y;
-	float toBottom = usinguv.y - (1 - bottom);
-	float hardEdge = step(0,toLeft) * step(0,toRight) * step(0,toTop) * step(0,toBottom);
-	
-	float fadeLeft = step(0.0,fadeDistance - uv.x);
-	float fadeRight = step(0,uv.x - (1 -fadeDistance));
-	float fadeBottom = step(0.0,fadeDistance - uv.y);
-	float fadeTop = step(0,uv.y - (1 -fadeDistance));
-
-	vec2 normlizeuv = normalize(uv);
-	float inLeft =  fadeLeft * map(uv.x,0,fadeDistance,0,1);
-	float inRight = fadeRight * map(1 - uv.x,0,fadeDistance,0,1);
-	float inBottom =  fadeBottom * map(uv.y,0,fadeDistance,0,1);
-	float inTop = fadeTop * map(1 - uv.y,0,fadeDistance,0,1);
-	
-	float combine = fadeLeft * (fadeBottom+fadeTop) + fadeRight * (fadeBottom+fadeTop);
-
-	float combine1 = fadeLeft * fadeBottom;
-	float combine2 = fadeLeft * fadeTop;
-	float combine3 = fadeRight * fadeBottom;
-	float combine4 = fadeRight * fadeTop;
-	
-	float inLeft2 =  fadeLeft * map(uv.x,0,fadeDistance,0,1);
-	float inRight2 = fadeRight * map(1 - uv.x,0,fadeDistance,0,1);
-	float inBottom2 =  fadeBottom * map(uv.y,0,fadeDistance,0,1);
-	float inTop2 = fadeTop * map(1 - uv.y,0,fadeDistance,0,1);
-	float surface = hardEdge;
-	float edge =  (inLeft + inRight + inBottom + inTop)  * (1 - combine)
-	+ combine1 * inLeft * inBottom 
-	+ combine2 * inLeft * inTop 
-	+ combine3 * inRight * inBottom 
-	+ combine4 * inRight * inTop ;
-	return vec2(surface,edge);
+    return vec2(1 - clamp(d,0,1),clamp((1 - d) / fwidth(d),0,1));
 }
 //
 //CUSTOM
@@ -308,10 +221,7 @@ vec2 Unity_Rotate_Radians_float(vec2 UV, vec2 Center, float Rotation)
     rotatedUV += Center;
 	return rotatedUV;
 }
-float randomCrack(vec2 uv,float rotation){
-	vec2 rotateduv = Unity_Rotate_Radians_float(uv,vec2(0.5,0.5),rotation);
-	return rotateduv.x * rotateduv.y;
-}
+
 void main()
 {
 	vec3 normalWS = iFS_Normal;
@@ -355,80 +265,80 @@ void main()
 	vec2 floorUV = floor((iFS_UV )* Patterntiling)/Patterntiling ;
 	//patternUV
 
-	float whiteNoise = get2DSample(heightMap, floorUV, disableFragment, vec4(1.0)).a;
+	float whiteNoise = get2DSample(patternNoiseMap, floorUV, disableFragment, vec4(1.0)).a;
+	float offset = Patterntiling * (floorUV.y  * Patterntiling + floorUV.x);
+	vec2 rotateFracUV = Unity_Rotate_Radians_float(fracUV,vec2(0.5,0.5),floor(mod(Unity_GradientNoise_float(floorUV,1001) * 100,4)) * HALF_PI); //45 degree per unit
+	vec2 AltasUV = (Get2DTexArrayFromIndex(offset + whiteNoise * 1023,shapeOfAtlas,maxNumOfAtlas) + rotateFracUV) / shapeOfAtlas;
+	float AltasHeight = get2DSample(patternNoiseMap, AltasUV, disableFragment, vec4(0.0)).r;
+	float scaleNoise = Unity_GradientNoise_float(rotateFracUV,EdgeRandomSeed);
+	float randomPickBrick = step(0.5,Unity_GradientNoise_float(floorUV,randomSeed)); 
+	float tiltSurface = mix(1,rotateFracUV.x * rotateFracUV.y,AnisotropyStrength);//随机倾斜，这个没说是用于整体还是说表面砖块的
 
-	vec2 rotateFracUV = Unity_Rotate_Radians_float(fracUV,vec2(0.5,0.5),floor(mod(Unity_GradientNoise_float(floorUV,1001) * 100,4)) * HALF_PI);
-	float largeScaleNoise = Unity_GradientNoise_float(rotateFracUV,EdgeRandomSeed);
-	float randomWidth = map(sin(largeScaleNoise),-1,1,Width*minScale,Width);
-	float randomHeight = map(sin(largeScaleNoise),-1,1,Height*minScale,Height);
-	float randomFade = map(sin(largeScaleNoise),-1,1,FadeDistance*minScale,FadeDistance);
-	float randomPickBrick = step(0.5,Unity_GradientNoise_float(floorUV,randomSeed)); //random Pick Brick Add Detail Normal.
+	float scaleFactor =min(Width,Height) * Patterntiling; //make sure the noise can cover the brick edge
+	float Seed = 10;//10 can do like model position or random seed.
+	float brickEdgeWithNoise = Unity_Contrast_float(Unity_GradientNoise_float(iFS_UV + Seed,scaleFactor),EdgeSegment) * Unity_Contrast_float(Unity_GradientNoise_float(iFS_UV-Seed,scaleFactor),EdgeSegment); 
+	brickEdgeWithNoise = clamp(brickEdgeWithNoise,0,1);
+	//TODO : if not used sin?
+	float randomWidth = map(sin(scaleNoise),-1,1,Width*minScale,Width);
+	float randomHeight = map(sin(scaleNoise),-1,1,Height*minScale,Height);
+	float r = map(sin(scaleNoise),-1,1,FadeDistance*minScale,FadeDistance);
 	
 	randomWidth = mix(Width,randomWidth,Edgedeformation );
 	randomHeight = mix(Height,randomHeight,Edgedeformation );
-	randomFade = mix(FadeDistance,randomFade,Edgedeformation );
-	
+	r = mix(FadeDistance,r,Edgedeformation);
 	// randomWidth = Width;
 	// randomHeight = Height;
 	// randomFade = FadeDistance;
-	BrickData brick;
-	brick = BrickGenerator(fracUV,randomWidth,randomHeight,randomFade,0.1); 
-	//WIP: some noise here, can we elimiate it? Unity_GradientNoise_float(uv,10)
+	vec4 brickColorHeight = get2DSample(baseColorMap, uv , disableFragment, cDefaultColor.mBaseColor);
+	vec4 GroundColorHeight = get2DSample(baseColorMapGround, uv, disableFragment, cDefaultColor.mBaseColor);
+	vec4 DetailColorHeight = get2DSample(baseColorMapDetail, uv, disableFragment, cDefaultColor.mBaseColor);
+	vec4 curveColorHeight = get2DSample(baseColorMapCurve, uv, disableFragment, cDefaultColor.mBaseColor);
+	float surfaceHeight = brickColorHeight.a; 
+
 	float recentagle = 0.5;
-	//some feature
-	float tiltSurface = mix(1,rotateFracUV.x * rotateFracUV.y,AnisotropyStrength);//随机倾斜，这个没说是用于整体还是说表面砖块的
-	//随机长草在缝隙里的Mask
-	float scaleNoise =min(Width,Height) * Patterntiling;
-	float Seed = 10;//10 can do like model position or random seed.
-	float brickEdgeWithNoise = brick.brickEdge * Unity_Contrast_float(Unity_GradientNoise_float(iFS_UV + Seed,scaleNoise),EdgeSegment) * Unity_Contrast_float(Unity_GradientNoise_float(iFS_UV-Seed,scaleNoise),EdgeSegment); 
-	//随机长草在缝隙里的Mask
-	//倒圆角
-	vec4 surfaceHeight = get2DSample(heightMap, rotateFracUV * tiling, disableFragment, vec4(1,1,1,1));
-	float adjustCurve = (brick.hardEdge - brick.softEdge) * brick.fadeArea ;
-	adjustCurve = pow(adjustCurve,2); //this is to elimate the noise.
-	if(InOutEdge){
-		adjustCurve = pow(adjustCurve,curveStrength);
-	}
-	else{
-		int times = max(2,int(curveStrength));
-		for(int i = 0; i < times;i++){
-			adjustCurve = pow(adjustCurve,1-((brick.hardEdge - brick.softEdge) * brick.fadeArea) );
-		}
-	}
-	//倒圆角
-	//some feature
-	recentagle =  clamp( brick.softEdge + adjustCurve ,0,1);
-	recentagle = map(recentagle,0,1,MinLow, MaxHeight);
-	recentagle = mix(recentagle,recentagle * tiltSurface,randomPickBrick);
-
-	recentagle += surfaceHeight.r*brick.hardEdge*SurfaceNormalStrength/100;
-	recentagle += MinLow * brick.brickEdge;
-	float offset = Patterntiling * (floorUV.y  * Patterntiling + floorUV.x);
-	vec2 uuvv = (Get2DTexArrayFromIndex(offset + whiteNoise * 1023,shapeOfAtlas,maxNumOfAtlas,offset) + rotateFracUV) / shapeOfAtlas;
-	recentagle -=  brick.hardEdge * get2DSample(heightMap, uuvv, disableFragment, vec4(0.0)).b  * randomPickBrick * CornerDeformation; 
-	recentagle = clamp(recentagle,0,1);
-
-	recentagle += surfaceHeight.g * brick.brickEdge * GroundStrength/100;
-	recentagle = clamp(recentagle,0,1);
-	
-	vec3 testNormal =Unity_NormalFromHeight_Tangent(recentagle,NormalStrength,iFS_PointWS,mat3(iFS_Tangent,iFS_Binormal,iFS_Normal));
 	float curveFromHeight;
-	curveFromHeight = fwidth(recentagle);
-	curveFromHeight = curveFromHeight * curveFromHeight;
-	recentagle =whiteNoise;
+	
+	vec2 rr = RoundRectangle(fracUV,randomWidth,randomHeight,FadeDistance);
+	recentagle = rr.x;
+	
+	float brcikMask = step(0.001,rr.x);
+	recentagle = max(0,recentagle);
+	recentagle = mix(recentagle,(recentagle - surfaceHeight * clamp(recentagle,0.01,0.1))  * brcikMask,SurfaceNormalStrength);
+	recentagle -= AltasHeight * randomPickBrick * CornerDeformation;
+	recentagle = clamp(recentagle,0,1);
 	
 
+	// curveFromHeight = (1-step(0.9,recentagle)) * step(curveMaskScale,recentagle);
+	// curveFromHeight = fwidth(recentagle);
+	// curveFromHeight = curveFromHeight * curveFromHeight * curveMaskStrength;
+	// curveFromHeight = (1 - step(0.3,rr.x)) * step(0.01,rr.x); //this is not working
+	float blendheightmask = step(0.1,1 - recentagle*1.5) * (1 - recentagle * 1.5);
+	float detailGroundMask = brickEdgeWithNoise * (1-step(0.2,recentagle));
+	blendheightmask = clamp(blendheightmask,0,1);
+	detailGroundMask = clamp(detailGroundMask,0,1);
+	recentagle = mix(recentagle, recentagle * tiltSurface ,   randomPickBrick * brcikMask);
+	recentagle = clamp(recentagle,0,1);
+	vec3 testNormal =Unity_NormalFromHeight_Tangent(recentagle,NormalStrength,iFS_PointWS,mat3(iFS_Tangent,iFS_Binormal,iFS_Normal));
+	curveFromHeight = (1 - step(0.98,recentagle)) * step(curveMaskScale,recentagle) + step(0.98,recentagle); 
+	curveFromHeight *=  step(min(0.001,distance(cameraPosWS,iFS_PointWS) * 0.0001,fwidth(recentagle))) * fwidth(recentagle) * curveMaskStrength * (1 / distance(cameraPosWS,iFS_PointWS));
+	curveFromHeight = clamp(curveFromHeight,0,1);
 	// ------------------------------------------
 	// Add Normal from normalMap
 	vec3 fixedNormalWS = normalWS;  // HACK for empty normal textures
-	// vec3 normalTS = get2DSample(normalMap, uv, disableFragment, cDefaultColor.mNormal).xyz;
+
+	vec3 GroundNormal = get2DSample(normalMap, uv, disableFragment, cDefaultColor.mNormal).xyz;
+	vec3 DetailNormal = get2DSample(normalDetailMap, uv, disableFragment, cDefaultColor.mNormal).xyz;
+	vec3 CurveNormal = get2DSample(normalCurveMap, uv, disableFragment, cDefaultColor.mNormal).xyz;
+	vec3 otherNormal = mix(GroundNormal,DetailNormal,detailGroundMask);
 	//CUSTOM:
 	//WIP how to blend normal?
 	// vec3 detailNormal = get2DSample(normalMap, fracUV, disableFragment, cDefaultColor.mNormal).xyz;
-	// detailNormal = Unity_NormalStrength_float(detailNormal,SurfaceNormalStrength);
-	// testNormal = BlendNormals(detailNormal,testNormal);
-
+	// detailNormal.xy *= SurfaceNormalStrength;
+	testNormal = mix(testNormal,otherNormal,blendheightmask);
+	// testNormal = mix(testNormal,BlendNormals(testNormal,CurveNormal),curveFromHeight); //这个部分先不混合
+	// recentagle = blendheightmask;
 	vec3 normalTS = testNormal;
+
 	if(length(normalTS)>0.0001)
 	{
 		normalTS = fixNormalSample(normalTS,flipY);
@@ -437,8 +347,8 @@ void main()
 			normalTS.y*binormalWS +
 			normalTS.z*normalWS );
 	}
-
 	
+		
 	// ------------------------------------------
 	// Compute material model (diffuse, specular & roughness)
 
@@ -452,54 +362,39 @@ void main()
 	// uѕed for a given texture in Designer yet)
 
 	//CUSTOM BLEND COLOR
-	vec3 baseColor;
-	vec3 brickColor = get2DSample(baseColorMap, rotateFracUV, disableFragment, cDefaultColor.mBaseColor).rgb;
-	vec3 GroundColor = get2DSample(baseColorMapGround, uv, disableFragment, cDefaultColor.mBaseColor).rgb;
-	vec3 DetailColor = get2DSample(baseColorMapDetail, uv, disableFragment, cDefaultColor.mBaseColor).rgb;
-	GroundColor = mix(GroundColor,DetailColor,brickEdgeWithNoise);
-	baseColor = brick.hardEdge * brickColor + brick.brickEdge * GroundColor + (1 - brick.brickEdge - brick.hardEdge);
+	vec3 groundDetailColor = mix(GroundColorHeight.rgb,DetailColorHeight.rgb,detailGroundMask);
+	vec3 baseColor = mix(brickColorHeight.rgb,groundDetailColor,blendheightmask);
+	baseColor = mix(baseColor,curveColorHeight.rgb,curveFromHeight);
 	if (sRGBBaseColor)
 		baseColor = srgb_to_linear(baseColor);
 	//CUSTOM BLEND COLOR
-
+	
 	//CUSTOM BLEND METALIC
-	float brickMetalic = get2DSample(metallicMap, rotateFracUV, disableFragment, cDefaultColor.mMetallic).r;
 	vec4 Metallic = get2DSample(metallicMap, uv, disableFragment, cDefaultColor.mMetallic);
-	float GroundMetalic = mix(Metallic.g,Metallic.b,brickEdgeWithNoise);
-	GroundMetalic = GroundMetalic * brick.brickEdge + brick.hardEdge * brickMetalic + (1 - brick.hardEdge - brick.brickEdge) * GroundMetalic;
-	float metallic = GroundMetalic;
+	float GroundDetailMetalic = mix(Metallic.g,Metallic.b,detailGroundMask);
+	float metallic = mix(Metallic.r,GroundDetailMetalic,blendheightmask);
+	metallic = mix(metallic,Metallic.a,curveFromHeight);
+	metallic = clamp(metallic,0,1);
 	//CUSTOM BLEND METALIC
 
-	//CUSTOM Main Roughness
+
 	float anisoLevel = get2DSample(anisotropyLevelMap, uv, disableFragment, cDefaultColor.mAnisotropyLevel).r;
 	//don't know what the hack is this..anisoLevel.
-	vec2 brickRoughness;
-	//TODO: If i should used random uv or..
-	brickRoughness.x = get2DSample(roughnessMap, rotateFracUV, disableFragment, cDefaultColor.mRoughness).r;
-	brickRoughness.y = brickRoughness.x / sqrt(max(1e-5, 1.0 - anisoLevel));
-	brickRoughness = max(vec2(1e-4), brickRoughness);
-	//CUSTOM Blend Roughness
-	//Ground Roughness
-	vec4 Roughness = get2DSample(roughnessMap, uv, disableFragment, cDefaultColor.mRoughness);
-	vec2 Groundroughness;
-	vec2 detailRoughness;
-	Groundroughness.x = Roughness.g; //ground roughness
-	Groundroughness.y = Groundroughness.x / sqrt(max(1e-5, 1.0 - anisoLevel));
-	Groundroughness = max(vec2(1e-4), Groundroughness);
-	//Ground Roughness
-	//Detail Roughness
-	detailRoughness.x = Roughness.b; //ground roughness
-	detailRoughness.y = detailRoughness.x / sqrt(max(1e-5, 1.0 - anisoLevel));
-	detailRoughness = max(vec2(1e-4), detailRoughness);
-	//Detail Roughness
-	vec2 combineRoughness = mix(Groundroughness,detailRoughness,brickEdgeWithNoise);
-	vec2 roughness;
-	// roughness.x = get2DSample(roughnessMap, uv, disableFragment, cDefaultColor.mRoughness).r;
-	// roughness.y = roughness.x / sqrt(max(1e-5, 1.0 - anisoLevel));
-	// roughness = max(vec2(1e-4), roughness);
-	roughness = brick.hardEdge * brickRoughness + brick.brickEdge * combineRoughness + (1 - brick.hardEdge - brick.brickEdge) * Groundroughness;//In Case of we missed something..
-	//CUSTOM Blend Roughness
 
+	//Brick Roughness
+
+
+	vec4 Roughness = get2DSample(roughnessMap, uv, disableFragment, cDefaultColor.mRoughness);
+	vec2 roughness;
+	float otherRoughness = mix(Roughness.g,Roughness.b,detailGroundMask);
+	
+
+	roughness.x = mix(Roughness.r,otherRoughness,blendheightmask);
+	roughness.x = mix(roughness.x,Roughness.a,curveFromHeight);
+	roughness.x = clamp(roughness.x,0,1);
+	roughness.y = roughness.x / sqrt(max(1e-5, 1.0 - anisoLevel));
+	roughness = max(vec2(1e-4), roughness);
+	//CUSTOM Blend Roughness
 	float anisoAngle = getAnisotropyAngleSample(anisotropyAngleMap, uv, disableFragment, cDefaultColor.mAnisotropyAngle.x);
 
 	vec3 diffColor = baseColor * (1.0 - metallic);
@@ -558,8 +453,9 @@ void main()
 	float opacity = get2DSample(opacityMap, uv, disableFragment, cDefaultColor.mOpacity).r;
 	
 	
-
+	
 	ocolor0 = vec4(finalColor, opacity);
+	// ocolor0 = vec4(baseColor,1);
 	// float ndotl = clamp(dot(normalize(pointToLight0DirWS),testNormal),0,1);
 	
 	// ocolor0 = vec4(ndotl,ndotl,ndotl,1.0) ;
@@ -571,6 +467,6 @@ void main()
 	if(checkCurveMask)
 		ocolor0 = vec4(curveFromHeight,curveFromHeight,curveFromHeight,1.0);
 	if(checkRandomBrickEdge)
-		ocolor0 = vec4(brickEdgeWithNoise,brickEdgeWithNoise,brickEdgeWithNoise,1.0);
+		ocolor0 = vec4(detailGroundMask,detailGroundMask,detailGroundMask,1.0);
 		
 }
